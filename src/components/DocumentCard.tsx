@@ -104,7 +104,7 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
       const { error: updateError } = await supabase
         .from('documents')
         .update({
-          status: 'en_attente_chef',
+          status: 'approuve',
           submitted_at: new Date().toISOString()
         })
         .eq('id', document.id)
@@ -116,8 +116,8 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
         .insert({
           document_id: document.id,
           actor_id: currentUserId,
-          action: 'submit',
-          comment: 'Soumission initiale pour validation.'
+          action: 'publish',
+          comment: 'Publication directe par l\'archiviste.'
         })
 
       if (eventError) throw eventError
@@ -125,7 +125,7 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
       // Log audit log
       await supabase.from('audit_logs').insert({
         user_id: currentUserId,
-        action: 'document.submit',
+        action: 'document.publish',
         resource_type: 'document',
         resource_id: document.id,
         resource_label: document.title
@@ -133,8 +133,8 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
 
       if (onRefresh) onRefresh()
     } catch (err) {
-      console.error('Erreur lors de la soumission:', err)
-      alert('Erreur lors de la soumission du document.')
+      console.error('Erreur lors de la publication:', err)
+      alert('Erreur lors de la publication du document.')
     } finally {
       setSubmitting(false)
     }
@@ -239,7 +239,7 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
               )}
             </div>
 
-            {/* Bouton de soumission pour l'agent */}
+            {/* Bouton de soumission/publication pour l'agent */}
             {canSubmit && (
               <button
                 onClick={handleSubmitForValidation}
@@ -250,7 +250,7 @@ export default function DocumentCard({ document, currentUserService, onDelete, o
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <>
-                    <span>Soumettre pour validation</span>
+                    <span>Publier le document</span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </>
                 )}

@@ -61,8 +61,12 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    uploadWithStatus('approuve')
+  }
+
+  const uploadWithStatus = async (targetStatus: 'brouillon' | 'approuve') => {
     setError(null)
 
     if (!file) {
@@ -100,7 +104,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
       }
 
       // 2. Insertion des métadonnées dans la table 'documents'
-      const { error: dbError } = await supabase
+      const { data: docData, error: dbError } = await supabase
           .from('documents')
           .insert({
             title: title.trim(),
@@ -111,14 +115,28 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
             service: dbService,
             direction_id: selectedServiceId,
             uploaded_by: currentUserId,
-            status: 'brouillon'
+            status: targetStatus
           })
+          .select()
+          .single()
 
       if (dbError) {
         // En cas d'erreur de base de données, tenter de nettoyer le stockage
         await supabase.storage.from('archives-pnpe').remove([storagePath])
         console.error('Détails erreur DB:', dbError)
         throw new Error(`Erreur lors de l'enregistrement en base: ${dbError.message}`)
+      }
+
+      // Enregistrer l'action d'audit
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && docData) {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          action: targetStatus === 'approuve' ? 'document.publish' : 'document.upload',
+          resource_type: 'document',
+          resource_id: docData.id,
+          resource_label: docData.title
+        })
       }
 
       // Succès
@@ -260,7 +278,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
             </div>
 
             {/* Validation Buttons */}
-            <div className="pt-4 border-t border-outline-variant/20 flex gap-3 justify-end">
+            <div className="pt-4 border-t border-outline-variant/20 flex gap-3 justify-end flex-wrap">
               <button
                   type="button"
                   onClick={onClose}
@@ -270,9 +288,18 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
                 Annuler
               </button>
               <button
-                  type="submit"
+                  type="button"
+                  onClick={() => uploadWithStatus('brouillon')}
                   disabled={uploading || !file || !title.trim()}
-                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="px-4 py-2 border border-primary text-primary hover:bg-primary/5 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Enregistrer en Brouillon
+              </button>
+              <button
+                  type="button"
+                  onClick={() => uploadWithStatus('approuve')}
+                  disabled={uploading || !file || !title.trim()}
+                  className="px-5 py-2 bg-primary hover:bg-primary/95 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-sm animate-none"
               >
                 {uploading ? (
                     <>
@@ -281,7 +308,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
                     </>
                 ) : (
                     <>
-                      <span>Valider l&apos;archivage</span>
+                      <span>Publier directement</span>
                     </>
                 )}
               </button>

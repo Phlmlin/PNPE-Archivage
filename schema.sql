@@ -43,11 +43,13 @@ BEGIN
     VALUES (
         new.id,
         COALESCE(new.raw_user_meta_data->>'full_name', 'Agent PNPE'),
-        COALESCE((new.raw_user_meta_data->>'service')::service_type, 'DG'::service_type)
+        COALESCE((new.raw_user_meta_data->>'service')::public.service_type, 'DG'::public.service_type)
     );
     RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public;
+
 
 -- Trigger attaché à auth.users
 CREATE OR REPLACE TRIGGER on_auth_user_created

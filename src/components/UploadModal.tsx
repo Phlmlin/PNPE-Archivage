@@ -109,8 +109,9 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess, currentU
             file_size: file.size,
             file_type: file.type,
             service: dbService,
+            direction_id: selectedServiceId,
             uploaded_by: currentUserId,
-            status: 'actif'
+            status: 'brouillon'
           })
 
       if (dbError) {

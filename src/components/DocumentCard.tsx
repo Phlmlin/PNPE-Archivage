@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, Trash2, User, Calendar, Loader2 } from 'lucide-react'
+import { FileText, Download, Trash2, User, Calendar, Loader2, ArrowRight } from 'lucide-react'
 import { formatBytes, formatDate } from '../lib/utils'
 import { getServiceByCode } from '../lib/constants'
-import { createClient } from '../lib/supabase/client'
+import { supabase } from '@/lib/supabaseClient'
+import { useUserRole } from '@/hooks/useUserRole'
+import { ValidationBadge } from './ui/ValidationBadge'
+import { ValidationPanel } from './ValidationPanel'
 
 export interface DocumentType {
   id: string
@@ -14,6 +17,9 @@ export interface DocumentType {
   file_size: number
   file_type: string
   service: string
+  direction_id: string
+  status: string
+  rejection_reason?: string | null
   created_at: string
   uploaded_by: string | null
   profiles?: {
@@ -26,12 +32,13 @@ interface DocumentCardProps {
   document: DocumentType
   currentUserService: string
   onDelete: (id: string, filePath: string) => Promise<void>
+  onRefresh?: () => void
 }
 
 const serviceAccentColors: Record<string, string> = {
   DG: 'bg-primary',
   DII: 'bg-blue-600',
-  DEJ: 'bg-secondary',
+  DEJ: 'bg-emerald-600',
   DDPAE: 'bg-purple-600',
   DAMG: 'bg-orange-600',
   SRH: 'bg-teal-600',
@@ -39,39 +46,40 @@ const serviceAccentColors: Record<string, string> = {
   SSA: 'bg-amber-600',
 }
 
-export default function DocumentCard({ document, currentUserService, onDelete }: DocumentCardProps) {
+export default function DocumentCard({ document, currentUserService, onDelete, onRefresh }: DocumentCardProps) {
+  const { profile } = useUserRole()
   const [downloading, setDownloading] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  
   const serviceInfo = getServiceByCode(document.service)
-  const isDG = currentUserService === 'DG'
   const accentColor = serviceAccentColors[document.service] || 'bg-slate-400'
+  
+  const currentUserId = profile?.id
+  const canDelete = profile?.role === 'super_admin' || (profile?.role && ['chef_direction', 'agent_archiviste'].includes(profile.role) && document.uploaded_by === currentUserId)
+  
+  // Soumission pour validation : uniquement par l'auteur d'un document en brouillon ou rejeté
+  const canSubmit = currentUserId === document.uploaded_by && ['brouillon', 'rejete'].includes(document.status)
 
   const handleDownload = async () => {
     try {
       setDownloading(true)
-      const supabase = createClient()
+      // Redirection vers la route API de téléchargement avec filigrane
+      const url = `/api/download?id=${document.id}&path=${encodeURIComponent(document.file_path)}`
       
-      const { data, error } = await supabase.storage
-          .from('archives-pnpe')
-          .download(document.file_path)
-
-      if (error) throw error
-
-      // Création du lien de téléchargement
-      const blob = new Blob([data], { type: document.file_type })
-      const url = window.URL.createObjectURL(blob)
+      // Crée un lien invisible pour forcer le téléchargement
       const a = window.document.createElement('a')
       a.href = url
       a.download = document.title.endsWith('.pdf') ? document.title : `${document.title}.pdf`
       window.document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       window.document.body.removeChild(a)
     } catch (err) {
       console.error('Erreur lors du téléchargement:', err)
-      alert('Impossible de télécharger le document. Vérifiez vos autorisations.')
+      alert('Impossible de télécharger le document.')
     } finally {
-      setDownloading(false)
+      // Simule un petit délai visuel
+      setTimeout(() => setDownloading(false), 1500)
     }
   }
 
@@ -90,17 +98,62 @@ export default function DocumentCard({ document, currentUserService, onDelete }:
     }
   }
 
+  const handleSubmitForValidation = async () => {
+    try {
+      setSubmitting(true)
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({
+          status: 'en_attente_chef',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', document.id)
+
+      if (updateError) throw updateError
+
+      const { error: eventError } = await supabase
+        .from('workflow_events')
+        .insert({
+          document_id: document.id,
+          actor_id: currentUserId,
+          action: 'submit',
+          comment: 'Soumission initiale pour validation.'
+        })
+
+      if (eventError) throw eventError
+
+      // Log audit log
+      await supabase.from('audit_logs').insert({
+        user_id: currentUserId,
+        action: 'document.submit',
+        resource_type: 'document',
+        resource_id: document.id,
+        resource_label: document.title
+      })
+
+      if (onRefresh) onRefresh()
+    } catch (err) {
+      console.error('Erreur lors de la soumission:', err)
+      alert('Erreur lors de la soumission du document.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
       <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-5 shadow-level-2 hover:shadow-lg transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
         {/* Status/Service Accent Strip */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor}`} />
 
         <div className="pl-1">
-          {/* Header Badge Service & Type */}
-          <div className="flex justify-between items-start gap-2 mb-4">
-            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${serviceInfo.color}`}>
-              {serviceInfo.code}
-            </span>
+          {/* Header Badge Service & Status */}
+          <div className="flex justify-between items-center gap-2 mb-4">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${serviceInfo.color}`}>
+                {serviceInfo.code}
+              </span>
+              <ValidationBadge status={document.status} />
+            </div>
             <span className="text-[10px] text-on-surface-variant font-mono font-semibold">
               {formatBytes(document.file_size)}
             </span>
@@ -127,6 +180,11 @@ export default function DocumentCard({ document, currentUserService, onDelete }:
                     Aucune description fournie
                   </p>
               )}
+              {document.status === 'rejete' && document.rejection_reason && (
+                  <div className="mt-3 p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-lg text-[11px] text-red-750 dark:text-red-300">
+                    <span className="font-bold">Motif du rejet :</span> {document.rejection_reason}
+                  </div>
+              )}
             </div>
           </div>
         </div>
@@ -149,34 +207,66 @@ export default function DocumentCard({ document, currentUserService, onDelete }:
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2 w-full">
-            <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex-1 py-2 px-3 bg-primary hover:bg-primary/95 text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
-            >
-              {downloading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                  <Download className="h-3.5 w-3.5" />
-              )}
-              {downloading ? 'Téléchargement...' : 'Télécharger'}
-            </button>
+          <div className="flex flex-col gap-2.5 w-full">
+            <div className="flex gap-2 w-full">
+              <button
+                  onClick={handleDownload}
+                  disabled={downloading || document.status === 'brouillon'}
+                  className="flex-1 py-2 px-3 bg-primary hover:bg-primary/95 text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                  title={document.status === 'brouillon' ? "Les brouillons ne peuvent pas être téléchargés." : ""}
+              >
+                {downloading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                    <Download className="h-3.5 w-3.5" />
+                )}
+                {downloading ? 'Téléchargement...' : 'Télécharger'}
+              </button>
 
-            {isDG && (
-                <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="py-2 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-lg text-xs flex items-center justify-center transition-colors disabled:opacity-50 cursor-pointer"
-                    title="Supprimer définitivement (Direction Générale uniquement)"
-                >
-                  {deleting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-red-600" />
-                  ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                  )}
-                </button>
+              {canDelete && (
+                  <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="py-2 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-lg text-xs flex items-center justify-center transition-colors disabled:opacity-50 cursor-pointer animate-none"
+                      title="Supprimer définitivement"
+                  >
+                    {deleting ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-red-600" />
+                    ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+              )}
+            </div>
+
+            {/* Bouton de soumission pour l'agent */}
+            {canSubmit && (
+              <button
+                onClick={handleSubmitForValidation}
+                disabled={submitting}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 border border-amber-500 text-amber-900 dark:text-amber-100 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Soumettre pour validation</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
+              </button>
             )}
+
+            {/* Panneau de validation pour les validateurs */}
+            <ValidationPanel 
+              document={{
+                id: document.id,
+                title: document.title,
+                status: document.status,
+                direction_id: document.direction_id
+              }} 
+              onUpdated={onRefresh || (() => {})}
+            />
           </div>
         </div>
       </div>

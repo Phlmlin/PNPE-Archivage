@@ -8,49 +8,49 @@ export const SERVICES = [
   },
   { 
     code: 'DII' as const, 
-    id: 'DII', 
+    id: '11111111-1111-1111-1111-111111111111', 
     name: 'Direction de l\'Insertion et de l\'Immigration (DII)', 
     color: 'bg-blue-600 text-white',
     description: 'Insertion et immigration professionnelle'
   },
   { 
     code: 'DEJ' as const, 
-    id: 'DEJ', 
+    id: '22222222-2222-2222-2222-222222222222', 
     name: 'Direction de l\'Emploi des Jeunes (DEJ)', 
     color: 'bg-emerald-600 text-white',
     description: 'Programmes d\'emploi pour la jeunesse'
   },
   { 
     code: 'DDPAE' as const, 
-    id: 'DDPAE', 
+    id: '33333333-3333-3333-3333-333333333333', 
     name: 'Direction du Développement Professionnel (DDPAE)', 
     color: 'bg-purple-600 text-white',
     description: 'Développement des compétences et de l\'accompagnement'
   },
   { 
     code: 'DAMG' as const, 
-    id: 'DAMG', 
+    id: '44444444-4444-4444-4444-444444444444', 
     name: 'Direction de l\'Appui aux Métiers et à la Gestion (DAMG)', 
     color: 'bg-orange-600 text-white',
     description: 'Support technique et gestion opérationnelle'
   },
   { 
     code: 'SRH' as const, 
-    id: 'SRH', 
+    id: '55555555-5555-5555-5555-555555555555', 
     name: 'Service des Ressources Humaines (SRH)', 
     color: 'bg-teal-600 text-white',
     description: 'Gestion du personnel et des carrières'
   },
   { 
     code: 'SCP' as const, 
-    id: 'SCP', 
+    id: '66666666-6666-6666-6666-666666666666', 
     name: 'Service Communication et Partenariat (SCP)', 
     color: 'bg-pink-600 text-white',
     description: 'Relations publiques, communication et partenariats'
   },
   { 
     code: 'SSA' as const, 
-    id: 'SSA', 
+    id: '77777777-7777-7777-7777-777777777777', 
     name: 'Service Social et d\'Accompagnement (SSA)', 
     color: 'bg-amber-600 text-white',
     description: 'Soutien social des bénéficiaires et agents'

@@ -30,13 +30,17 @@ import {
   Calendar, 
   AlertTriangle, 
   ArrowRight, 
-  User
+  User,
+  Users
 } from 'lucide-react'
 import { createClient } from '../lib/supabase/client'
 import { SERVICES, getServiceByCode } from '../lib/constants'
 import { formatBytes, formatDate } from '../lib/utils'
 import DocumentCard, { DocumentType } from './DocumentCard'
 import UploadModal from './UploadModal'
+import { useUserRole } from '@/hooks/useUserRole'
+import { RoleBadge } from './ui/RoleBadge'
+import { ValidationBadge } from './ui/ValidationBadge'
 
 interface DashboardProps {
   initialProfile: {
@@ -50,6 +54,8 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
   const router = useRouter()
   const searchInputRef = useRef<HTMLInputElement>(null)
   
+  const { profile, loading: roleLoading, can } = useUserRole()
+  
   // Navigation active : 'dashboard' (Vue d'ensemble) ou 'archives' (Explorateur)
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'archives'>('dashboard')
   
@@ -57,11 +63,11 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const isDG = initialProfile.service === 'DG'
+  const isDG = can.viewAllDirections ?? (initialProfile.service === 'DG')
 
   // Initialisation directe de l'état
   const [selectedServiceCode, setSelectedServiceCode] = useState<string>(() => {
-    return isDG ? 'TOUS' : initialProfile.service
+    return initialProfile.service === 'DG' ? 'TOUS' : initialProfile.service
   })
   
   const [isUploadOpen, setIsUploadOpen] = useState(false)
@@ -83,11 +89,15 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
           file_size,
           file_type,
           service,
+          direction_id,
+          status,
+          rejection_reason,
           created_at,
           uploaded_by,
           profiles (
             full_name,
-            service
+            role,
+            direction_id
           )
         `)
           .order('created_at', { ascending: false })
@@ -95,10 +105,18 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
       // Cloisonnement de la requête selon les rôles
       if (isDG) {
         if (selectedServiceCode && selectedServiceCode !== 'TOUS') {
-          query = query.eq('service', selectedServiceCode)
+          const match = SERVICES.find(s => s.code === selectedServiceCode)
+          if (match) {
+            query = query.eq('direction_id', match.id)
+          }
         }
       } else {
-        query = query.eq('service', initialProfile.service)
+        const userDirectionId = profile?.direction_id
+        if (userDirectionId) {
+          query = query.eq('direction_id', userDirectionId)
+        } else {
+          query = query.eq('service', initialProfile.service)
+        }
       }
 
       const { data, error } = await query
@@ -110,7 +128,8 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
 
       const totalDocs = docs.length
       const totalSize = docs.reduce((acc, doc) => acc + Number(doc.file_size), 0)
-      const currentServiceDocs = docs.filter(d => d.service === initialProfile.service).length
+      const userDirId = profile?.direction_id
+      const currentServiceDocs = docs.filter(d => userDirId ? d.direction_id === userDirId : d.service === initialProfile.service).length
       
       setStats({ totalDocs, totalSize, currentServiceDocs })
     } catch (err) {
@@ -118,7 +137,7 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
     } finally {
       setLoading(false)
     }
-  }, [selectedServiceCode, isDG, initialProfile.service])
+  }, [selectedServiceCode, isDG, initialProfile.service, profile, can])
 
   useEffect(() => {
     let active = true
@@ -164,6 +183,10 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
   }
 
   const filteredDocuments = documents.filter(doc => {
+    // Cloisonnement supplémentaire des brouillons : seuls l'auteur ou le super_admin peuvent voir leurs propres brouillons
+    if (doc.status === 'brouillon' && doc.uploaded_by !== profile?.id && profile?.role !== 'super_admin') {
+      return false
+    }
     const query = searchQuery.toLowerCase().trim()
     if (!query) return true
     return (
@@ -187,27 +210,39 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
   const storagePercent = Math.min(Math.round((stats.totalSize / storageLimit) * 100), 100)
   const totalSizeInMB = (stats.totalSize / (1024 * 1024)).toFixed(2)
 
-  // Activités récentes basées sur la base de données
-  const recentActivities = documents.slice(0, 3).map((doc, idx) => {
-    const colors = [
-      { bg: 'bg-emerald-100 dark:bg-emerald-950/40', text: 'text-secondary' },
-      { bg: 'bg-blue-100 dark:bg-navy-900', text: 'text-gab-blue' },
-      { bg: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-600' }
-    ]
-    const color = colors[idx % colors.length]
-    return {
-      id: doc.id,
-      title: 'Nouveau document archivé',
-      description: `Le document "${doc.title}" a été déposé pour le service ${doc.service} par ${doc.profiles?.full_name || 'un agent'}.`,
-      time: formatDate(doc.created_at),
-      color
+  // Activités récentes basées sur la base de données (exclure les brouillons des autres)
+  const recentActivities = documents
+    .filter(doc => !(doc.status === 'brouillon' && doc.uploaded_by !== profile?.id))
+    .slice(0, 3)
+    .map((doc, idx) => {
+      const colors = [
+        { bg: 'bg-emerald-100 dark:bg-emerald-950/40', text: 'text-secondary' },
+        { bg: 'bg-blue-100 dark:bg-navy-900', text: 'text-gab-blue' },
+        { bg: 'bg-purple-100 dark:bg-purple-950/40', text: 'text-purple-600' }
+      ]
+      const color = colors[idx % colors.length]
+      return {
+        id: doc.id,
+        title: doc.status === 'approuve' ? 'Document approuvé' : doc.status === 'rejete' ? 'Document rejeté' : 'Nouveau document archivé',
+        description: `Le document "${doc.title}" (${doc.status}) a été traité pour le service ${doc.service} par ${doc.profiles?.full_name || 'un agent'}.`,
+        time: formatDate(doc.created_at),
+        color
+      }
+    })
+
+  // Documents critiques / urgences (ceux en attente de validation par le chef ou le DG)
+  const criticalDocuments = documents.filter(doc => {
+    if (profile?.role === 'chef_direction') {
+      return doc.status === 'en_attente_chef' && doc.direction_id === profile.direction_id
     }
-  })
+    if (profile?.role === 'dg_superviseur' || profile?.role === 'super_admin') {
+      return doc.status === 'en_attente_dg'
+    }
+    // Pour les archivistes, afficher leurs documents rejetés ou en cours
+    return doc.uploaded_by === profile?.id && ['en_attente_chef', 'en_attente_dg', 'rejete'].includes(doc.status)
+  }).slice(0, 5)
 
-  // Documents critiques / urgences (ceux du service de l'utilisateur ou récents)
-  const criticalDocuments = documents.slice(0, 3)
-
-  const userServiceDetail = getServiceByCode(initialProfile.service)
+  const userServiceDetail = getServiceByCode(profile?.direction_code || initialProfile.service)
 
   return (
       <div className="min-h-screen flex bg-slate-50 dark:bg-[#001229] text-[#181c1e] dark:text-[#e2e8f0]">
@@ -273,6 +308,28 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                   <span>Archives & Explorateur</span>
                 </button>
               </li>
+              {can?.viewAuditLogs && (
+                <li>
+                  <button
+                      onClick={() => router.push('/dashboard/audit')}
+                      className="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
+                  >
+                    <Shield className="h-4 w-4 shrink-0 text-gab-yellow" />
+                    <span>Journal d'Audit</span>
+                  </button>
+                </li>
+              )}
+              {can?.manageUsers && (
+                <li>
+                  <button
+                      onClick={() => router.push('/dashboard/admin/users')}
+                      className="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
+                  >
+                    <Users className="h-4 w-4 shrink-0 text-gab-yellow" />
+                    <span>Gestion Utilisateurs</span>
+                  </button>
+                </li>
+              )}
             </ul>
 
             <div className="h-[1px] bg-white/10" />
@@ -294,11 +351,14 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
           <div className="p-4 border-t border-white/10 bg-black/10 shrink-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-9 w-9 rounded-full bg-primary-container border border-white/10 flex items-center justify-center text-white font-bold shrink-0">
-                {initialProfile.full_name.charAt(0)}
+                {profile?.full_name ? profile.full_name.charAt(0) : initialProfile.full_name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{initialProfile.full_name}</p>
-                <p className="text-[10px] text-white/50 truncate font-semibold uppercase">{initialProfile.service}</p>
+                <p className="text-sm font-bold text-white truncate">{profile?.full_name || initialProfile.full_name}</p>
+                <div className="flex flex-col gap-1 mt-0.5">
+                  <p className="text-[10px] text-white/50 truncate font-semibold uppercase">{profile?.direction_code || initialProfile.service}</p>
+                  {profile?.role && <RoleBadge role={profile.role} />}
+                </div>
               </div>
             </div>
             <button
@@ -382,6 +442,34 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                   <span>Archives & Explorateur</span>
                 </button>
               </li>
+              {can?.viewAuditLogs && (
+                <li>
+                  <button
+                      onClick={() => {
+                        router.push('/dashboard/audit')
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
+                  >
+                    <Shield className="h-4 w-4 shrink-0 text-gab-yellow" />
+                    <span>Journal d'Audit</span>
+                  </button>
+                </li>
+              )}
+              {can?.manageUsers && (
+                <li>
+                  <button
+                      onClick={() => {
+                        router.push('/dashboard/admin/users')
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-semibold cursor-pointer"
+                  >
+                    <Users className="h-4 w-4 shrink-0 text-gab-yellow" />
+                    <span>Gestion Utilisateurs</span>
+                  </button>
+                </li>
+              )}
             </ul>
 
             <div className="h-[1px] bg-white/10" />
@@ -402,12 +490,15 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
           {/* Footer */}
           <div className="p-4 border-t border-white/10 bg-black/10 shrink-0">
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-white font-bold">
-                {initialProfile.full_name.charAt(0)}
+              <div className="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-white font-bold shrink-0">
+                {profile?.full_name ? profile.full_name.charAt(0) : initialProfile.full_name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{initialProfile.full_name}</p>
-                <p className="text-[10px] text-white/50 truncate font-semibold uppercase">{initialProfile.service}</p>
+                <p className="text-sm font-bold text-white truncate">{profile?.full_name || initialProfile.full_name}</p>
+                <div className="flex flex-col gap-1 mt-0.5">
+                  <p className="text-[10px] text-white/50 truncate font-semibold uppercase">{profile?.direction_code || initialProfile.service}</p>
+                  {profile?.role && <RoleBadge role={profile.role} />}
+                </div>
               </div>
             </div>
             <button
@@ -475,9 +566,9 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                 {/* Profile widget */}
                 <div className="flex items-center gap-2.5 p-1 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                   <div className="h-7 w-7 rounded-full bg-gab-blue/10 dark:bg-gab-blue/20 text-gab-blue flex items-center justify-center font-bold text-xs">
-                    {initialProfile.full_name.charAt(0)}
+                    {profile?.full_name ? profile.full_name.charAt(0) : initialProfile.full_name.charAt(0)}
                   </div>
-                  <span className="text-xs font-semibold text-on-surface">{initialProfile.full_name}</span>
+                  <span className="text-xs font-semibold text-on-surface">{profile?.full_name || initialProfile.full_name}</span>
                 </div>
               </div>
             </div>
@@ -579,7 +670,7 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                       <div className="px-5 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/20">
                         <h3 className="font-bold text-sm text-on-surface flex items-center gap-2">
                           <AlertTriangle className="h-4.5 w-4.5 text-red-600" />
-                          Archives du Service ({initialProfile.service})
+                          Archives du Service ({profile?.direction_code || initialProfile.service})
                         </h3>
                         <button 
                             onClick={() => setCurrentPage('archives')}
@@ -617,17 +708,14 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                                         {formatDate(doc.created_at)}
                                       </td>
                                       <td className="py-3 px-5">
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-secondary border border-emerald-200 dark:border-emerald-900/40">
-                                          <span className="w-1 h-1 rounded-full bg-secondary"></span>
-                                          Traitant
-                                        </span>
+                                        <ValidationBadge status={doc.status} />
                                       </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
                                   <td colSpan={4} className="py-6 px-5 text-center text-xs text-slate-400 italic">
-                                    Aucun document archivé pour le moment
+                                    Aucune action requise / archive récente
                                   </td>
                                 </tr>
                             )}
@@ -880,6 +968,7 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
                                   document={doc}
                                   currentUserService={initialProfile.service}
                                   onDelete={handleDeleteDocument}
+                                  onRefresh={fetchDocuments}
                               />
                           ))}
                         </div>

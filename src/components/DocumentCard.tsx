@@ -28,11 +28,23 @@ interface DocumentCardProps {
   onDelete: (id: string, filePath: string) => Promise<void>
 }
 
+const serviceAccentColors: Record<string, string> = {
+  DG: 'bg-primary',
+  DII: 'bg-blue-600',
+  DEJ: 'bg-secondary',
+  DDPAE: 'bg-purple-600',
+  DAMG: 'bg-orange-600',
+  SRH: 'bg-teal-600',
+  SCP: 'bg-pink-600',
+  SSA: 'bg-amber-600',
+}
+
 export default function DocumentCard({ document, currentUserService, onDelete }: DocumentCardProps) {
   const [downloading, setDownloading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const serviceInfo = getServiceByCode(document.service)
   const isDG = currentUserService === 'DG'
+  const accentColor = serviceAccentColors[document.service] || 'bg-slate-400'
 
   const handleDownload = async () => {
     try {
@@ -40,8 +52,8 @@ export default function DocumentCard({ document, currentUserService, onDelete }:
       const supabase = createClient()
       
       const { data, error } = await supabase.storage
-        .from('archives-pnpe')
-        .download(document.file_path)
+          .from('archives-pnpe')
+          .download(document.file_path)
 
       if (error) throw error
 
@@ -79,88 +91,94 @@ export default function DocumentCard({ document, currentUserService, onDelete }:
   }
 
   return (
-    <div className="bg-[var(--card)] text-[var(--card-foreground)] border border-[var(--border)] rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
-      <div>
-        {/* En-tête : Badge Service & Type */}
-        <div className="flex justify-between items-start gap-2 mb-3">
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${serviceInfo.color}`}>
-            {serviceInfo.code}
-          </span>
-          <span className="text-xs text-slate-400 font-mono">
-            {formatBytes(document.file_size)}
-          </span>
-        </div>
+      <div className="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-5 shadow-level-2 hover:shadow-lg transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
+        {/* Status/Service Accent Strip */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor}`} />
 
-        {/* Titre & Description */}
-        <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 bg-navy-50 dark:bg-navy-950 rounded-lg text-navy-500 dark:text-navy-300 shrink-0">
-            <FileText className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2" title={document.title}>
-              {document.title}
-            </h3>
-            {document.description ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-3">
-                {document.description}
-              </p>
-            ) : (
-              <p className="text-xs italic text-slate-400 dark:text-slate-500 mt-1">
-                Aucune description fournie
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Méta-informations & Actions */}
-      <div className="border-t border-[var(--border)] pt-4 mt-4">
-        <div className="flex flex-col gap-2 text-xs text-slate-500 dark:text-slate-400 mb-4">
-          <div className="flex items-center gap-1.5">
-            <User className="h-3.5 w-3.5" />
-            <span>
-              Par : <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {document.profiles?.full_name || 'Agent PNPE'}
-              </span>
+        <div className="pl-1">
+          {/* Header Badge Service & Type */}
+          <div className="flex justify-between items-start gap-2 mb-4">
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${serviceInfo.color}`}>
+              {serviceInfo.code}
+            </span>
+            <span className="text-[10px] text-on-surface-variant font-mono font-semibold">
+              {formatBytes(document.file_size)}
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{formatDate(document.created_at)}</span>
+
+          {/* Title & Description */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2 bg-slate-100 dark:bg-slate-900 border border-outline-variant/20 rounded-lg text-primary dark:text-slate-300 shrink-0">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 
+                  className="font-bold text-sm text-on-surface group-hover:text-primary dark:group-hover:text-white transition-colors line-clamp-2 leading-snug" 
+                  title={document.title}
+              >
+                {document.title}
+              </h3>
+              {document.description ? (
+                  <p className="text-xs text-on-surface-variant mt-1.5 line-clamp-3 leading-relaxed">
+                    {document.description}
+                  </p>
+              ) : (
+                  <p className="text-[11px] italic text-slate-400 dark:text-slate-500 mt-1.5">
+                    Aucune description fournie
+                  </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Boutons d'action */}
-        <div className="flex gap-2 w-full">
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex-1 py-2 px-3 bg-navy-600 hover:bg-navy-700 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            {downloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {downloading ? 'Téléchargement...' : 'Télécharger'}
-          </button>
+        {/* Metadata & Actions */}
+        <div className="border-t border-outline-variant/20 pt-4 mt-4 pl-1">
+          <div className="flex flex-col gap-2 text-[11px] text-on-surface-variant mb-4">
+            <div className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span>
+                Par : <span className="font-semibold text-on-surface">
+                  {document.profiles?.full_name || 'Agent PNPE'}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span>{formatDate(document.created_at)}</span>
+            </div>
+          </div>
 
-          {isDG && (
+          {/* Action buttons */}
+          <div className="flex gap-2 w-full">
             <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="py-2 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg text-sm flex items-center justify-center transition-colors disabled:opacity-50 cursor-pointer"
-              title="Supprimer définitivement (Direction Générale uniquement)"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex-1 py-2 px-3 bg-primary hover:bg-primary/95 text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
             >
-              {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+              {downloading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Trash2 className="h-4 w-4" />
+                  <Download className="h-3.5 w-3.5" />
               )}
+              {downloading ? 'Téléchargement...' : 'Télécharger'}
             </button>
-          )}
+
+            {isDG && (
+                <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="py-2 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-lg text-xs flex items-center justify-center transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Supprimer définitivement (Direction Générale uniquement)"
+                >
+                  {deleting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-red-600" />
+                  ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
   )
 }

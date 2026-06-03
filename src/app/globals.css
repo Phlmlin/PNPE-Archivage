@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f7fafc;
+  --foreground: #181c1e;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
+  --card-foreground: #181c1e;
+  --border: #c3c6d0;
   
   --gab-green: #009E49;
   --gab-yellow: #FCD116;
@@ -13,9 +13,23 @@
 }
 
 @theme {
-  --color-gab-green: var(--gab-green);
-  --color-gab-yellow: var(--gab-yellow);
-  --color-gab-blue: var(--gab-blue);
+  --color-primary: #001939;
+  --color-primary-container: #002d5e;
+  --color-on-primary-container: #7696cd;
+  
+  --color-secondary: #006d3e;
+  --color-secondary-container: #9af6b9;
+  --color-on-secondary-container: #097343;
+  
+  --color-tertiary: #1f1807;
+  --color-tertiary-container: #352d19;
+  
+  --color-surface-container: #ebeef0;
+  --color-surface-container-low: #f1f4f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #181c1e;
+  --color-on-surface-variant: #43474f;
+  --color-outline-variant: #c3c6d0;
   
   --color-navy-50: #f0f4f8;
   --color-navy-100: #dbe3ec;
@@ -28,27 +42,42 @@
   --color-navy-800: #1e2f46;
   --color-navy-900: #131f30;
   --color-navy-950: #0c131e;
+  
+  --color-gab-green: var(--gab-green);
+  --color-gab-yellow: var(--gab-yellow);
+  --color-gab-blue: var(--gab-blue);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1329;
-    --foreground: #f8fafc;
-    --card: #111c44;
-    --card-foreground: #f8fafc;
-    --border: #1e293b;
+    --background: #001229;
+    --foreground: #e2e8f0;
+    --card: #001f3d;
+    --card-foreground: #e2e8f0;
+    --border: #244779;
   }
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   margin: 0;
 }
 
-/* Effet de verre flouté (glassmorphism) */
+/* Shadow level 2 for document cards */
+.shadow-level-2 {
+  box-shadow: 0px 4px 12px rgba(0, 45, 94, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .shadow-level-2 {
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Glass effect */
 .glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
@@ -57,7 +86,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgba(17, 28, 68, 0.7);
+    background: rgba(0, 19, 57, 0.7);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }

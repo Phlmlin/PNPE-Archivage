@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  
+  --gab-green: #009E49;
+  --gab-yellow: #FCD116;
+  --gab-blue: #3A75C4;
+}
+
+@theme {
+  --color-gab-green: var(--gab-green);
+  --color-gab-yellow: var(--gab-yellow);
+  --color-gab-blue: var(--gab-blue);
+  
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #dbe3ec;
+  --color-navy-200: #bdcbdc;
+  --color-navy-300: #91a9c4;
+  --color-navy-400: #6182a9;
+  --color-navy-500: #3f628c;
+  --color-navy-600: #304c72;
+  --color-navy-700: #283f5e;
+  --color-navy-800: #1e2f46;
+  --color-navy-900: #131f30;
+  --color-navy-950: #0c131e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1329;
+    --foreground: #f8fafc;
+    --card: #111c44;
+    --card-foreground: #f8fafc;
+    --border: #1e293b;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Effet de verre flouté (glassmorphism) */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(17, 28, 68, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}

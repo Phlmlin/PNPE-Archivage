@@ -91,3 +91,34 @@ body {
     -webkit-backdrop-filter: blur(10px);
   }
 }
+
+/* Dynamic PNPE Logo visibility depending on parent background */
+.dark-bg-hidden {
+  display: block !important;
+}
+.dark-bg-visible {
+  display: none !important;
+}
+
+/* When parent has class representing a dark background (e.g. .bg-primary, or dark mode) */
+.bg-primary .dark-bg-hidden,
+.bg-slate-950 .dark-bg-hidden,
+.bg-slate-900 .dark-bg-hidden,
+.bg-slate-800 .dark-bg-hidden,
+.bg-black .dark-bg-hidden,
+.bg-slate-900\/20 .dark-bg-hidden,
+.bg-\[\#001f3d\] .dark-bg-hidden,
+.dark .dark-bg-hidden {
+  display: none !important;
+}
+
+.bg-primary .dark-bg-visible,
+.bg-slate-950 .dark-bg-visible,
+.bg-slate-900 .dark-bg-visible,
+.bg-slate-800 .dark-bg-visible,
+.bg-black .dark-bg-visible,
+.bg-slate-900\/20 .dark-bg-visible,
+.bg-\[\#001f3d\] .dark-bg-visible,
+.dark .dark-bg-visible {
+  display: block !important;
+}

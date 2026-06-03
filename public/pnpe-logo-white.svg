@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="globe-grad" cx="50%" cy="50%" r="50%" fx="35%" fy="35%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="75%" stop-color="#f3f4f6" />
+      <stop offset="100%" stop-color="#d1d5db" />
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="3" stdDeviation="2.5" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  
+  <!-- Logo Emblem -->
+  <g transform="translate(10, 10)">
+    <!-- Globe Base -->
+    <circle cx="90" cy="90" r="55" fill="url(#globe-grad)" filter="url(#shadow)" />
+    
+    <!-- Gabon Map Contour (Vector stylized outline) -->
+    <path d="M 72,66
+             C 77,63 83,61 89,62
+             C 95,63 100,67 103,71
+             C 106,75 108,81 110,85
+             C 112,89 110,94 107,98
+             C 104,102 101,106 97,109
+             C 93,112 87,114 82,113
+             C 77,112 73,108 71,104
+             C 69,100 71,96 69,92
+             C 67,88 64,86 64,82
+             C 64,78 68,75 69,71
+             C 70,68 70,67 72,66 Z" 
+          fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
+    
+    <!-- Green Swoosh (Top) -->
+    <path d="M 54,42
+             C 72,28 108,28 132,46
+             C 142,54 145,67 141,78
+             C 132,63 108,52 80,52
+             C 68,52 58,55 50,60
+             C 50,53 51,47 54,42 Z" 
+          fill="#22c55e" />
+          
+    <!-- Yellow Swoosh (Left) -->
+    <path d="M 34,60
+             C 24,80 26,112 44,132
+             C 52,141 66,144 76,140
+             C 62,130 52,106 52,78
+             C 52,68 55,58 60,50
+             C 50,50 42,54 34,60 Z" 
+          fill="#eab308" />
+          
+    <!-- Blue Swoosh (Bottom) -->
+    <path d="M 130,126
+             C 110,138 76,138 54,120
+             C 45,111 43,98 47,88
+             C 56,102 80,114 108,114
+             C 120,114 130,111 138,106
+             C 137,113 134,120 130,126 Z" 
+          fill="#3b82f6" />
+  </g>
+  
+  <!-- Brand Text -->
+  <g transform="translate(170, 0)">
+    <!-- PNPE Text (Sleek bold typography in White) -->
+    <text x="0" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="82" fill="#ffffff" letter-spacing="-2">PNPE</text>
+    
+    <!-- Subtitle (Clean administrative sans-serif in White) -->
+    <text x="3" y="138" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" fill="#ffffff" letter-spacing="1">PÔLE NATIONAL DE PROMOTION DE L'EMPLOI</text>
+  </g>
+</svg>

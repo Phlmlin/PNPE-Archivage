@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { User, Lock, Mail, Loader2, AlertCircle, Shield, Database } from 'lucide-react'
 import { createClient } from '../../lib/supabase/client'
 import { SERVICES, uiIdToDbService } from '../../lib/constants'
+import { PNPELogo } from '@/components/ui/PNPELogo'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -99,19 +100,12 @@ export default function RegisterPage() {
         <div className="w-full max-w-md z-10 space-y-6 my-8">
           
           {/* Brand header */}
-          <div className="text-center space-y-2">
-            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl mx-auto overflow-hidden p-2">
-              <img src="/pnpe-emblem.svg" alt="PNPE Logo" className="w-full h-full object-contain" />
-            </div>
+            <PNPELogo className="h-20 w-auto mx-auto mb-3" />
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">
+              <h2 className="text-lg font-bold tracking-tight text-white">
                 Création de Compte Agent
               </h2>
-              <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mt-1">
-                Portail d&apos;Archivage Gabon
-              </p>
             </div>
-          </div>
 
           {/* Form Card (Glassmorphism) */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-md">

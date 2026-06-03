@@ -100,8 +100,8 @@ export default function RegisterPage() {
           
           {/* Brand header */}
           <div className="text-center space-y-2">
-            <div className="h-14 w-14 bg-primary-container rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl mx-auto">
-              <Database className="h-6 w-6 text-white" />
+            <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl mx-auto overflow-hidden p-2">
+              <img src="/pnpe-emblem.svg" alt="PNPE Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white">

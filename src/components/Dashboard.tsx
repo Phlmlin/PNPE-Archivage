@@ -258,8 +258,8 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
 
           {/* Insignia & Brand Header */}
           <div className="p-6 border-b border-white/10 flex flex-col items-center shrink-0">
-            <div className="w-14 h-14 rounded-full bg-primary-container flex items-center justify-center mb-3 shadow-inner border border-white/10">
-              <Database className="h-7 w-7 text-on-primary-container" />
+            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center mb-3 shadow-md border border-white/10 overflow-hidden p-1.5">
+              <img src="/pnpe-emblem.svg" alt="PNPE Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-semibold text-lg text-white tracking-tight">PNPE Gabon</h1>
             <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mt-1">Archivage Numérique</p>
@@ -385,8 +385,8 @@ export default function Dashboard({ initialProfile }: DashboardProps) {
         }`}>
           {/* Header */}
           <div className="p-5 border-b border-white/10 flex flex-col items-center shrink-0">
-            <div className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center mb-3">
-              <Database className="h-6 w-6 text-on-primary-container" />
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-3 shadow-md border border-white/10 overflow-hidden p-1">
+              <img src="/pnpe-emblem.svg" alt="PNPE Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-semibold text-base text-white">PNPE Gabon</h1>
             <p className="text-[10px] text-white/50 uppercase tracking-widest font-bold mt-1">Archivage Numérique</p>
